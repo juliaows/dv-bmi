@@ -1,0 +1,160 @@
+---
+title: "Data Visualization - BMI Analysis"
+author: "Julia Oriana"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+# Introduction
+
+Hello, in this project we will do simple data visualization using the [BMI Analysis](https://www.kaggle.com/datasets/rukenmissonnier/age-weight-height-bmi-analysis) dataset.
+
+The dataset in question consists of 741 distinct records, each of which is briefly detailed with the following features:\
+\* **Age (in years):** This field quantifies the age of each individual, denominated in years. It serves as a chronological reference for the dataset.\
+\* **Height (in meters):** The "Height" column provides measurements of the subjects' stature in meters. This standardized unit allows for precise representation and comparison of individuals' heights.\
+\* **Weight (in kilograms):** In the "Weight" column, the weights of the subjects are quantified in kilograms. This unit ensures consistency and accuracy in measuring the subjects' mass.\
+\* **BMI (Body Mass Index):** Derived from the height and weight columns, the BMI column computes the Body Mass Index of each individual. The calculation utilizes the formula: BMI = (Weight in kg) / (Height in m\^2). BMI is a vital numerical indicator used for categorizing individuals based on their weight relative to their height. It is expressed as a continuous variable.\
+\* **BmiClass:** The "BmiClass" column categorizes individuals based on their calculated BMI values. The categories include "Obese Class 1," "Overweight," "Underweight," among others. These classifications are instrumental in health and weight analysis.
+
+# Data Explanatory
+
+## Data Input & Structure
+
+First and foremost, we will input the data
+
+```{r}
+data <- read.csv("C:/Users/HP/Downloads/dv-bmiclass/bmi.csv")
+head(data)
+```
+
+Now, we will do the data inspection
+
+```{r}
+dim(data)
+```
+
+Now we found that the dataset consist of 5 column (variables) and 741 rows (individuals). Therefore, let's find out about the data structure
+
+```{r}
+str(data)
+```
+
+As we can see, each variable has the right data types.
+
+## Missing Data Checking
+
+Now we'll make sure that the data isn't consisting any missing values.
+
+```{r}
+anyNA(data)
+```
+
+```{r}
+colSums(is.na(data))
+```
+
+Okay, we're good to go. There are no missing values in the dataset.
+
+# Study Case
+Before getting deeper analysis, we'll call necessary packages.
+```{r, message=FALSE}
+library(ggplot2)
+library(reshape2)
+library(gcookbook)
+library(dplyr)
+library(magrittr)
+library(plotly)
+```
+
+1. Is there any correlation between Height and Weight?
+```{r}
+cor(data$Height, data$Weight)
+```
+  
+From the result above, we can see that there are strong positive correlation between Height and Weight. The following scatter plot will explain visually the correlation of both variable completed with the BmiClass classification.
+
+```{r}
+ggplotly(ggplot(data, aes(Weight, Height))+
+  geom_point(aes(colour = BmiClass))+
+  labs(title = "Scatter Plot of Weight and Height with the BMI Class Classified")
+)
+```
+  
+2. What are the frequencies of each BMI Class?
+```{r}
+bmiclass_df <- data %>%
+  group_by(BmiClass) %>%
+  summarize(freq = n())
+
+bmiclass_df
+```
+
+```{r}
+ggplot(bmiclass_df, aes(x = reorder(BmiClass, freq), y = freq)) +
+  geom_bar(stat = "identity", fill = "pink") +
+  geom_text(aes(label = freq), vjust = -0.5) +  
+  labs(title = "The Distribution of The Body Mass Index Category", x = "BMI Category", y = "Frequency")+
+  geom_hline(yintercept = mean(bmiclass_df$freq), color ="red", linetype = 5)+
+  coord_flip()
+```
+  
+As we can see according to the bar plot above, normal weight and overweight category has an average over the mean of all categories' frequencies.   
+
+3. How is the distibution of each BmiClass' Age? Do you think the data is fine? Is there any outlier in it? 
+```{r}
+ggplotly(ggplot(data, aes(BmiClass, Age))+
+  geom_boxplot(fill = "pink")+
+  geom_hline(yintercept = mean(data$Age), color ="red", linetype = 5)+
+  labs(title = "Boxplot of Age Distribution from Each BMI Class"))
+```
+  
+The boxplot above shows that the mean age is 31.62 years old, and that each BmiClass' age distribution is fine because there are no outliers in those boxplots. With the boxplot below, we can see it more clearly.    
+
+```{r}
+ggplot(data, aes(BmiClass, Age))+
+  geom_jitter(aes(col = data$Age))+
+  geom_boxplot(alpha = 0.5)+
+  labs(title = "Scatterplot of Each Category Boxplot's Age")
+```
+  
+3. The grouping of Obese Class 1, Obese Class 3, and Underweight is visually heterogenous when we look at the boxplot of number 2. Is it real?
+
+```{r}
+aggregate(Age~BmiClass, data, mean)
+```
+```{r}
+aggregate(Age~BmiClass, data, sd)
+```
+Well, according to the result above we can see that each BmiClass' standard deviation are below the mean value. Which means that the age distribution according to the BmiClass are homogenously.
+  
+4. Let's see the correlation of each numerical variables (Bmi, Height, Weight, and Age)
+```{r}
+cor_matrix <-cor(data[,c(1:4)])
+cor_melt <-melt(cor_matrix)
+```
+
+```{r}
+ggplot(cor_melt, aes(Var1, Var2, fill = value))+
+  geom_tile()+
+  geom_text(aes(label = round(value, 2)), color = "black", size = 3, vjust = 0.5)+
+  scale_fill_gradient2(high = "magenta", midpoint = 0)+
+  theme_minimal()+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        axis.text.y = element_text(angle = 0, hjust = 1))
+```
+  
+Now we can conclude the rank of correlation is listed below:  
+1. Bmi x Weight  
+2. Weight x Height  
+3. Bmi x Height  
+4. Bmi x Age  
+5. Weight x Age  
+6. Height x Age
+
+# Final Conclusion
+According to the data visualization we can conclude few things such as:  
+1. Most of the sample are classified as Normal  
+2. Each BmiClass has the age distibution homogenously where there are no outliers included  
+3. Each numerical variable has a correlation where Bmi is most correlated with the Weight  
+4. There isn't much to see in this dataset because there aren't many variables in it, however multiple linear regression or logistic regression are recommended methods for analyzing the data.  
+
